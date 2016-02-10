@@ -6,19 +6,18 @@
 // 'starter.services' is found in services.js
 // 'starter.controllers' is found in controllers.js
 
-angular.module('starter', ['ionic','ionic.service.core', 'starter.controllers', 'starter.services', 'firebase', 'ionicLazyLoad', 'starter.controllers'])
+angular.module('starter', ['ionic','ionic.service.core', 'ngCordova',  'starter.controllers', 'starter.services', 'firebase', 'ionicLazyLoad', 'starter.controllers'])
 
 .run(function($ionicPlatform) {
-
-$ionicPlatform.ready(function() {
-    var io = Ionic.io();
+  $ionicPlatform.ready(function() {
+ var io = Ionic.io();
     var push = new Ionic.Push({
       "onNotification": function(notification) {
-        alert('Received push notification!');
+        $state.go('invest.marketing'); 
       },
       "pluginConfig": {
         "android": {
-          "iconColor": "#0000FF"
+          "iconColor": "#ccc"
         }
       }
     });
@@ -34,14 +33,61 @@ $ionicPlatform.ready(function() {
     user.save();
    
     var callback = function(data) {
-     push.addTokenToUser(user);
-     localStorage.setItem("deviceToken", data.token);
+      push.addTokenToUser(user);
       user.save();
     };
     push.register(callback);
- });
+    // Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
+    // for form inputs)
+    if (window.cordova && window.cordova.plugins && window.cordova.plugins.Keyboard) {
+      cordova.plugins.Keyboard.hideKeyboardAccessoryBar(true);
+      cordova.plugins.Keyboard.disableScroll(true);
+
+    }
+    if (window.StatusBar) {
+      // org.apache.cordova.statusbar required
+      StatusBar.styleDefault();
+    }
+  });
 })
 
+.directive('input', function($timeout) {
+  return {
+    restrict: 'E',
+    scope: {
+      'returnClose': '=',
+      'onReturn': '&',
+      'onFocus': '&',
+      'onBlur': '&'
+    },
+    link: function(scope, element, attr) {
+      element.bind('focus', function(e) {
+        if (scope.onFocus) {
+          $timeout(function() {
+            scope.onFocus();
+          });
+        }
+      });
+      element.bind('blur', function(e) {
+        if (scope.onBlur) {
+          $timeout(function() {
+            scope.onBlur();
+          });
+        }
+      });
+      element.bind('keydown', function(e) {
+        if (e.which == 13) {
+          if (scope.returnClose) element[0].blur();
+          if (scope.onReturn) {
+            $timeout(function() {
+              scope.onReturn();
+            });
+          }
+        }
+      });
+    }
+  }
+})
 
 .config(function($stateProvider, $urlRouterProvider) {
 
@@ -81,6 +127,17 @@ $ionicPlatform.ready(function() {
     	}
     }
   })
+
+   .state('app.chats', {
+    url: '/chats',
+     views: {
+      'menuContent': {
+          templateUrl: 'templates/tab-chats.html',
+           controller: 'ChatsCtrl'
+
+         }
+       }
+  })
   
   //property details
   .state('app.propertyDetails', {
@@ -98,6 +155,7 @@ $ionicPlatform.ready(function() {
     url: '/invest',
     abstract: true,
     templateUrl: 'views/invest/index.html',
+    controller: 'InvestCtrl'
   })
 
   // Each tab has its own nav history stack:
@@ -126,16 +184,10 @@ $ionicPlatform.ready(function() {
     url: '/chatMain',
       templateUrl: 'templates/chatsMain.html',
           controller: 'ChatsCtrl'
- 
   })
 
 
-    .state('chats', {
-    url: '/chats',
-      templateUrl: 'templates/tab-chats.html',
-          controller: 'ChatsCtrl'
- 
-  })
+
 
   // if none of the above states are matched, use this as the fallback
   $urlRouterProvider.otherwise('/auth/main');

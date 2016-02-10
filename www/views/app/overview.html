@@ -4,11 +4,10 @@
     </ion-nav-title>
 
  <ion-pane>
-  <ion-content>
+  <ion-content lazy-scroll has-header="true" ng-init="init()">
 
-    <div class="overviewMain" ng-click="showAllBar()">
-    
-    <!-- START Header -->
+	<div class="overviewMain">    
+    	<!-- START Header -->
 	    <h2>OVERVIEW</h2>
 	    <h4>A short view of your earnings</h4>
 		<div id='outer' >
@@ -29,40 +28,38 @@
 				</li>				
 			</ul>					
 		</div>
+		<!-- END Header -->
     </div>
-
-    <!-- END Header -->
-    
-    <!-- START Investment chart section -->
-    <!-- END Investment chart section -->
-    
-    <!-- START Your properties section -->
-    <div class="overviewTitle">
-      <h2>INVESTMENTS</h2>
-      <h4>List of your properties</h4>
-    </div>  
-    <div id="INVESTMENTSimg">
-    	<div ng-repeat="property in propertyImage" class="animated fadeInLeft col {{property.class}}" 
-    	ng-style="{'background-image': 'url(http://ec2-52-32-92-71.us-west-2.compute.amazonaws.com/uploads/{{ property.FileName }})'}"
-    	ng-click="showPropertyDetails(property.PropertyId, property.FileName)">
-    	</div>
-    </div>
-    <!-- END Your properties section -->
-    
-    <!-- START Special deals section -->
-    <div class="overviewTitle">
-      <h2 class="special">SPECIAL DEALS</h2>
-      <h4>Similar properties that you invested</h4>
-    </div>
-    <div id="SPECIAL_DEALSimg">
-    	<div ng-repeat="property in specialPropertyImage" class="animated fadeInLeft col {{property.class}}" 
-    	ng-style="{'background-image': 'url(http://ec2-52-32-92-71.us-west-2.compute.amazonaws.com/uploads/{{ property.FileName }})'}">
-    	</div>
-    </div>
-
-    
-
-    <!-- END Special deals section -->
+	    
+	<ion-spinner icon="bubbles" ng-if='isOverviewLoading' class="spinner"></ion-spinner>
+	<div ng-if='!isOverviewLoading'> 
+	    
+	    <!-- START Your properties section -->
+	    <div class="overviewTitle">
+	      <h2>INVESTMENTS</h2>
+	      <h4>List of your properties</h4>
+	    </div>  
+	    <div id="INVESTMENTSimg">
+	    	<div ng-repeat="property in propertyImage" class="animated fadeInLeft col {{property.class}}" 
+	    	ng-style="{'background-image': 'url(http://ec2-52-32-92-71.us-west-2.compute.amazonaws.com/uploads/{{ property.FileName }})'}"
+	    	ng-click="showPropertyDetails(property.PropertyId, property.FileName)">
+	    	</div>
+	    </div>
+	    <!-- END Your properties section -->
+	    
+	    <!-- START Special deals section -->
+	    <div class="overviewTitle">
+	      <h2 class="special">SPECIAL DEALS</h2>
+	      <h4>Similar properties that you invested</h4>
+	    </div>
+	    <div id="SPECIAL_DEALSimg">
+	    	<div ng-repeat="property in specialPropertyImage" class="animated fadeInLeft col {{property.class}}" 
+	    	ng-style="{'background-image': 'url(http://ec2-52-32-92-71.us-west-2.compute.amazonaws.com/uploads/{{ property.FileName }})'}"
+	    	ng-click="gotoMarketing(property.PropertyId)">
+	    	</div>
+	    </div>
+	    <!-- END Special deals section -->
+	</div>
   </ion-content>
  </ion-pane>
 </ion-view>

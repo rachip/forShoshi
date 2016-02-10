@@ -1,6 +1,7 @@
 var widthArr = [60, 40, 50];
 var loginUserType;
 var TheBranchName;
+localStorage.setItem("isLoggedin", "false");
 angular.module('starter.controllers', ['firebase'])
 
 .controller('AuthCtrl', function($scope, $ionicConfig) {
@@ -28,10 +29,10 @@ angular.module('starter.controllers', ['firebase'])
 })
 
 //LOGIN
-.controller('LoginCtrl', function($scope, $http, $state, $location) {
+.controller('LoginCtrl', function($scope, $rootScope, $http, $state, $location) {
 
-	$scope.loginClick= 0;
-	$scope.errorLogin=0;
+	$scope.loginClick = 0;
+	$scope.errorLogin = 0;
 
 	$scope.updateMe = function() { 
 		$scope.loginClick = 1;
@@ -61,7 +62,13 @@ angular.module('starter.controllers', ['firebase'])
 				$scope.msg = "The Email or Password incorrect";
 				$scope.errorLogin=1;
 				
-				
+				Ionic.io();
+				// this will give you a fresh user or the previously saved 'current user'
+				var user = Ionic.User.current();
+				user.id = Ionic.User.anonymousId();
+
+				//persist the user
+				user.save();
 			}
 			else {
 				// kick off the platform web client
@@ -84,10 +91,9 @@ angular.module('starter.controllers', ['firebase'])
 				
 				localStorage.setItem("loginUserType", resp.data["Type"]);
 				if(resp.data["Type"] == "user") {
-
-
 					loginUserType = "user";
 					localStorage.setItem("id", resp.data["UserId"]);
+					localStorage.setItem("isLoggedin", "true");
 					localStorage.setItem("ClientName", resp.data["ClientName"]);
 					localStorage.setItem("isAdmin", resp.data["IsAdmin"]);
 					localStorage.setItem("branch", resp.data["BranchId"]);
@@ -97,26 +103,11 @@ angular.module('starter.controllers', ['firebase'])
 				else {
 					user.set('name', resp.data["ClientName"]);
 					loginUserType = "client";
+					localStorage.setItem("isLoggedin", "true");
 					localStorage.setItem("id", resp.data["ClientId"]);
 					localStorage.setItem("ClientName", resp.data["ClientName"]);
 					localStorage.setItem("email", $scope.userDetail.email);
 					localStorage.setItem("password", $scope.userDetail.password);
-
-					var deviceToken = localStorage.getItem("deviceToken");
-
-					$http({
-					    url: 'http://updateme.co.il/index.php/api/Login/setDeviceToken', 
-					    method: "POST",
-					    data:  {Userid: resp.data["ClientId"],
-					    DeviceToken: deviceToken,
-					    IsconnectToApp: 1}, 
-					    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-					    
-					}).then(function(resp) {
-
-						console.log(resp);
-
-						});
 				}
 					
 				$state.go('app.overview');
@@ -169,137 +160,232 @@ angular.module('starter.controllers', ['firebase'])
 })
 
 //propertyDetails ctrl
-.controller('MarketingDetailsCtrl', function($scope, $http, $rootScope,  $ionicSlideBoxDelegate) {
+.controller('MarketingDetailsCtrl', function($scope, $cordovaSocialSharing, $http, $rootScope, $ionicPopup, $ionicScrollDelegate) {
+
+	$scope.share = function() {
+
+		var isLoggedin = localStorage.getItem("isLoggedin");
+
+		if (isLoggedin == "true") {
+
+			console.log(isLoggedin);
+
+			var massage = localStorage.getItem("ClientName") + " wanted to share with you a very interesting investment he thought you might be interested in and grant you with a 5% discount….";
+
+			$cordovaSocialSharing.share(massage, "Me app", null, "http://me.co.il");
+
+
+
+		}
+
+		else {
+
+			console.log(isLoggedin);
+
+		var alertPopup = $ionicPopup.alert({
+       title: 'Me app',
+       template: 'You must log in to share property'
+     	});
+
+
+		}
+
+	}
+
+
+	$scope.MailObj = {};
+	
 	$scope.$on( "marketingDetails", function(event, data) {
 		propertyId = data.marketingPropertyId;
 		getAllMarketingPropertyImages(propertyId, $scope, $http);
 		getMarketingPropertyInfo(propertyId, $scope, $http);
-	});	
-})
-
-.controller('ChatsCtrl', function($scope, $ionicHistory, $state, $rootScope, $firebaseObject ,$firebaseArray, $ionicScrollDelegate, $rootScope ) {
-
-
-
-		$scope.branchToChat = function (BranchName) {
-
-		TheBranchName = BranchName;
-
-		console.log(BranchName);
-
-		$scope.chatSelected = false;
-
-		$state.go('chats');
-
-	}
-
-		$scope.selectChat = function() {
-
-			if ($rootScope.propertyCnt > 1 ) {
-
-
-				$scope.chatSelected = true;
-
-
-
-			}
-
-			else {
-
-				TheBranchName = $rootScope.TheBranchName;
-				$state.go('chats');
-
-
-
-			}
-
-
-
-		} 
-
-	
-
-
-
-
-
-	$scope.chatIsActive = false;
-
-	$scope.myId = localStorage.getItem("id");
-	var userId = localStorage.getItem("id");
-
-	var ref = new Firebase("https://updatemeapp.firebaseio.com/messages/" + TheBranchName + "/" + userId);
-
-	ref.on("child_added", function(date) {	
-
-		alert(date)
-
-		$ionicScrollDelegate.scrollBottom();
-		$ionicScrollDelegate.scrollBottom();
-
-		
-
-		
-
 	});
-
+	
+	$scope.buy = function() {
 		$ionicScrollDelegate.scrollBottom();
-
-	$scope.chats = $firebaseArray(ref);
-
-	var username = localStorage.getItem("ClientName");
-
-
-	$scope.sendChat = function(chat) {
-
-		$scope.chats.$add({
-			user: username,
-			userid: userId,
-	        message: chat.message,
-	        client: 'true',
-	        timestamp: new Date().getTime()
-		});
-		chat.message = "";
-
-
+		$scope.sendMail = 1;
 	}
-
-	$scope.myGoBack = function() {
-    $ionicHistory.goBack();
-  };
-
-
+	
+	$scope.meeting = function() {
+		$ionicScrollDelegate.scrollBottom();
+		$scope.meet = 1;
+	}
+	
+	$scope.send = function() {
+		$ionicScrollDelegate.scrollTop();	
+		$scope.sendMail = 0;
+		
+		var obj = {name: $scope.MailObj.name, mail: $scope.MailObj.mail, phone: $scope.MailObj.phone,
+				   address: $scope.MailObj.address, schedule: $scope.MailObj.schedule};
+		console.log(obj);
+		
+		// send mail to moshe gmail
+		$http({
+		    url: 'http://ec2-52-32-92-71.us-west-2.compute.amazonaws.com/index.php/api/Email/buy', 
+		    method: "POST",
+		    data: {name: $scope.MailObj.name, email: $scope.MailObj.mail, phone: $scope.MailObj.phone,
+				   address: $scope.MailObj.address, schedule: $scope.MailObj.schedule},
+		    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+		}).then(function(resp) {
+			console.log("sucess")
+		}, function(err) {
+		    console.error('ERR', err);
+		})	
+		
+		// save mail details in contacts leader tbl
+		$http({
+		    url: 'http://ec2-52-32-92-71.us-west-2.compute.amazonaws.com/index.php/api/Email/addContactLeader', 
+		    method: "POST",
+		    data: {name: $scope.MailObj.name, email: $scope.MailObj.mail, phone: $scope.MailObj.phone,
+				   address: $scope.MailObj.address, schedule: $scope.MailObj.schedule},
+		    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+		}).then(function(resp) {
+			console.log("sucess")
+		}, function(err) {
+		    console.error('ERR', err);
+		})	
+		$scope.MailObj = {};
+	}
+	
+	$scope.setMeeting = function() {
+		$ionicScrollDelegate.scrollTop();		
+		$scope.meet = 0;
+		
+		var obj = {name: $scope.MailObj.name, mail: $scope.MailObj.mail, phone: $scope.MailObj.phone,
+				   address: $scope.MailObj.address, schedule: $scope.MailObj.schedule};
+		console.log(obj);
+		
+		// send mail to moshe gmail
+		$http({
+		    url: 'http://ec2-52-32-92-71.us-west-2.compute.amazonaws.com/index.php/api/Email/setMeeting', 
+		    method: "POST",
+		    data: {name: $scope.MailObj.name, email: $scope.MailObj.mail, phone: $scope.MailObj.phone,
+				   schedule: $scope.MailObj.schedule},
+		    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+		}).then(function(resp) {
+			console.log("sucess")
+		}, function(err) {
+		    console.error('ERR', err);
+		})	
+		
+		// save mail details in contacts leader tbl
+		$http({
+		    url: 'http://ec2-52-32-92-71.us-west-2.compute.amazonaws.com/index.php/api/Email/addContactLeader', 
+		    method: "POST",
+		    data: {name: $scope.MailObj.name, email: $scope.MailObj.mail, phone: $scope.MailObj.phone,
+				   address: '', schedule: $scope.MailObj.schedule},
+		    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+		}).then(function(resp) {
+			console.log("sucess")
+		}, function(err) {
+		    console.error('ERR', err);
+		})
+		$scope.MailObj = {};
+	}
+	
 })
 
+//Chats Ctrl
+.controller('ChatsCtrl', function($scope, $ionicHistory, $state, $rootScope, $firebaseObject ,$firebaseArray, $ionicScrollDelegate, $rootScope ) { 
 
+	$scope.show_chat_bu = true;
 
+	$scope.branchToChat = function (BranchName) { 
+		TheBranchName = BranchName;	
+	 	$scope.chatSelected = false; 
+	 	$scope.show_chat_bu = false;	 
+	 	$state.go('app.chats'); 
+	} 
+ 
+ 	$scope.selectChat = function() { 
+ 		if ($rootScope.propertyCnt > 1 ) { 
+ 			$scope.chatSelected = true; 
+ 		} else { 
+ 			TheBranchName = $rootScope.TheBranchName; 
+ 			$state.go('app.chats'); 
+ 			$scope.show_chat_bu = false;
+ 		} 
+ 	}  
+
+  	$scope.chatIsActive = false; 
+ 
+  	$scope.myId = localStorage.getItem("id"); 
+ 	var userId = localStorage.getItem("id"); 
+ 
+ 	var ref = new Firebase("https://updatemeapp.firebaseio.com/messages/" + TheBranchName + "/" + userId); 
+ 
+  	ref.on("child_added", function(date) { 
+	 	$ionicScrollDelegate.scrollBottom(); 
+	 	$ionicScrollDelegate.scrollBottom(); 
+ 	}); 
+ 
+  	$ionicScrollDelegate.scrollBottom(); 
+  
+ 	$scope.chats = $firebaseArray(ref); 
+ 
+  	var username = localStorage.getItem("ClientName"); 
+   
+ 	$scope.sendChat = function(chat) { 
+   		$scope.chats.$add({ 
+ 			user: username, 
+ 			userid: userId, 
+ 	        message: chat.message, 
+ 	        client: 'true', 
+ 	        timestamp: new Date().getTime() 
+ 		}); 
+ 		chat.message = ""; 
+ 	} 
+ 
+ 	$scope.myGoBack = function() { 
+ 		$ionicHistory.goBack(); 
+    }; 
+    
+    $scope.isEmpty = function (obj) {
+    	console.log("obj "+ obj);
+        if (obj == "") 
+        	return false;
+        else
+        	return true;
+    };
+}) 
 
 //OverviewProperties Ctrl - logged in user
-.controller('OverviewPropertiesCtrl', function($scope, $http, $timeout, $rootScope, $state, $q) {
-    var id;  
-    $scope.isOverviewLoading = true;
+.controller('OverviewPropertiesCtrl', function($scope, $http, $timeout, $rootScope, $state, $q, $ionicScrollDelegate) {
+    var id; 
+    $scope.isOverviewLoading = true;    
     
-    var promise = getOverviewPageData($scope, $rootScope, $http, $q);
-	promise.then(function() {
-	}, function() {
-		alert('Failed: ');
-	});
-	
-	getMainBarValues($scope, $http);
-	
+    $scope.init = function() {
+    	var promise = getOverviewPageData($scope, $rootScope, $http, $q);
+		promise.then(function() {
+		}, function() {
+			alert('Failed: ');
+		});
+		
+		getMainBarValues($scope, $http);
+    }
+    
 	$scope.showPropertyDetails = function(propertyId, imageURL) {
 		console.log("showDetails function " + propertyId);
 		$state.go('app.propertyDetails');
 	    $timeout(function() {
 	    	var unbind = $rootScope.$broadcast( "showDetails", {PropertyId:propertyId, ImageURL:imageURL} );
 	    });
-	}
+	};
+	
+	$scope.gotoMarketing = function(propertyId) {
+	    $ionicScrollDelegate.scrollTop();
+		$state.go('invest.marketingDetails');
+		$timeout(function() {
+	    	var unbind = $rootScope.$broadcast( "marketingDetails", {marketingPropertyId:propertyId} );
+	    });
+	};
 })
 
 //propertyDetails ctrl
-.controller('PropertyDetailsCtrl', function($scope, $ionicScrollDelegate, $http, $rootScope, $timeout, $q) {
+.controller('PropertyDetailsCtrl', function($scope, $ionicScrollDelegate, $http, $rootScope, 
+			$timeout, $q, $ionicPopup) {
 	
-	$scope.showPurchase = 1;
+	$scope.showPurchase = 0;
 	$scope.showClosing = 0;
 	$scope.showRenovation = 0;
 	$scope.showLeasing = 0;
@@ -318,8 +404,7 @@ angular.module('starter.controllers', ['firebase'])
 		promise.then(function() {
 		}, function() {
 			alert('Failed: ');
-		});	
-		getPropertyChart(propertyId, $scope, $http);
+		});			
 	});
 	
 	$scope.click = function(section) {		
@@ -346,17 +431,18 @@ angular.module('starter.controllers', ['firebase'])
 	};
 	
 	$scope.requestInfo = function() {
-		$ionicScrollDelegate.scrollBottom();
+		$ionicScrollDelegate.scrollBottom();		
 		$scope.requestPopup = 1;
 		$('#requestInfo').removeClass('fadeOut').addClass('fadeIn');		
 		$('input[type=checkbox]').removeAttr('checked');
 	};
-
+	
+	showAlert = false;
 	$scope.sendRequestInfo = function() {
-	$ionicScrollDelegate.scrollTop();		
-		console.log($scope.Info);
+		$ionicScrollDelegate.scrollTop();		
 		for(var i in $scope.Info) {
 			if($scope.Info[i]) {
+				showAlert = true;
 				$http({
 		    	    url: 'http://ec2-52-32-92-71.us-west-2.compute.amazonaws.com/index.php/api/RequestUpdate', 
 		    	    method: "GET",
@@ -373,7 +459,19 @@ angular.module('starter.controllers', ['firebase'])
 		$('#requestInfo').removeClass('fadeIn').addClass('fadeOut');		
 		$timeout(function() {					
 			$scope.requestPopup = 0;
+			$scope.Info = {};
 		});	
+		
+		if(showAlert) {
+			var alertPopup = $ionicPopup.alert({
+			     title: 'Update ME',
+			     template: 'Your request for update was sent to the office'
+			   });
+			   alertPopup.then(function(res) {
+			     //console.log('Thank you for not eating my delicious ice cream cone');
+			   });
+			showAlert = false;
+		}
 	};
 })
 
@@ -395,7 +493,6 @@ function getPropertyImage(propertyId, $scope, $http) {
 	    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
 	}).then(function(resp) {
 		if (resp.data.length != 0) {
-			console.log(resp.data);
 			$scope.allImages = resp.data;			
 		} 		
 	}, function(err) {
@@ -436,7 +533,7 @@ function getPropertyChart(propertyId, $scope, $http) {
 			$scope.propertyChart.TotalReturn = numberWithCommas($scope.propertyChart.TotalReturn);
 			
 			// bar
-			var div1 = d3.select(document.getElementById('div2'));
+			var div2 = d3.select(document.getElementById('div2'));
 			start();
 
 			function onClick1() {
@@ -579,7 +676,6 @@ function getOccupiedDetails(propertyId, $scope, $http) {
 		if (resp.data.length != 0) {
 		
 			$scope.occupied = resp.data[0];
-			console.log($scope.occupied);
 			$scope.occupied['EvictionDate'] = dateFormat($scope.occupied['EvictionDate']);
 			$scope.occupied['GoingToBeVacent'] = dateFormat($scope.occupied['GoingToBeVacent']);
 			
@@ -756,6 +852,8 @@ function getAllMarketingPropertyImages(propertyId, $scope, $http) {
 }
 
 function getMarketingPropertyInfo(propertyId, $scope, $http) {
+	var investmentAmount, salePrice, purchaseCost, closingCost, softCost, investmentME, financing, address;
+	
 	$http({
 	    url: 'http://ec2-52-32-92-71.us-west-2.compute.amazonaws.com/index.php/api/Marketing/getMarketingId', 
 	    method: "GET",
@@ -764,11 +862,179 @@ function getMarketingPropertyInfo(propertyId, $scope, $http) {
 	}).then(function(resp) {
 		if (resp.data.length != 0) {
 			$scope.marketingData = resp.data[0];
+			investmentAmount = $scope.marketingData["BuyPrice"];
+			salePrice = $scope.marketingData["SalePrice"];
+			salePrice = $scope.marketingData["SalePrice"];
+			purchaseCost = $scope.marketingData["PurchaseCost"];
+			closingCost = $scope.marketingData["ClosingCost"];
+			softCost= $scope.marketingData["SoftCost"];
+			investmentME = $scope.marketingData["InvestmentME"];
+			financing = $scope.marketingData["Financing"];
+			address = $scope.marketingData["Address"];
+			
 			console.log($scope.marketingData);
+
+			drawInvestmentCostsCart(investmentAmount, purchaseCost, closingCost, softCost, investmentME, financing);
+			drawSensitivityAnalysisCart(investmentAmount, salePrice);
+			capitalStructure($scope, investmentAmount, purchaseCost, closingCost, softCost, investmentME, financing);
+			darwGoogleMap(address);
 		} 
 	}, function(err) {
 	    console.error('ERR', err);
 	})
+}
+
+function drawInvestmentCostsCart(buySum, purchaseCost, closingCost, softCost, investmentME, financing ) {
+	
+	var svg = d3.select("div#investmentAmountCart").append("svg").attr("width", 150).attr("height", 160);
+
+	svg.append("g").attr("id", "salesDonut");
+
+	var val1 = purchaseCost/buySum;
+	var val2 = closingCost/buySum;
+	var val3 = softCost/buySum;
+	var val4 = investmentME/buySum;
+	var val5 = financing/buySum;
+	
+	Donut3D.draw("salesDonut", 
+			[ {label:"sss", value:val1, color:"#499FCE"}, 
+			  {label:"sss", value:val2, color:"#1B4A64"}, 
+			  {label:"sss", value:val3, color:"#A37E64"}, 
+			  {label:"sss", value:val4, color:"#662756"}, 
+			  {label:"aaa", value:val5, color:"#7F8354"}
+			], 70, 90, 70, 70, 0, 0.6);
+}
+
+function drawSensitivityAnalysisCart(buySum, saleSum) {
+	var income = saleSum - buySum;
+	var data = {
+		    labels: ["-20%", "-15%", "-10%", "-5%", "Base", "5%", "10%", "15%", "20%"],
+		    datasets: [
+		        {
+		            label: "buySum",
+		            fillColor: "rgba(73,159,206,0.75)",
+		            strokeColor: "rgba(73,159,206,0.8)",
+		            highlightFill: "rgba(73,159,206,0.75)",
+		            highlightStroke: "rgba(73,159,206,1)",
+		            data: [calcPercent(buySum, 20, "minus"), calcPercent(buySum, 15, "minus"), calcPercent(buySum, 10, "minus"), calcPercent(buySum, 5, "minus"), 
+		                   buySum, 
+		                   calcPercent(buySum, 5, "plus"), calcPercent(buySum, 10, "plus"), calcPercent(buySum, 15, "plus"), calcPercent(buySum, 20, "plus")]
+		        },
+		        {
+		            label: "saleSum",
+		            fillColor: "rgba(27,74,100,0.75)",
+		            strokeColor: "rgba(27,74,100,0.8)",
+		            highlightFill: "rgba(27,74,100,0.75)",
+		            highlightStroke: "rgba(27,74,100,1)",
+		            data: [calcPercent(saleSum, 20, "minus"), calcPercent(saleSum, 15, "minus"), calcPercent(saleSum, 10, "minus"), calcPercent(saleSum, 5, "minus"), 
+		                   saleSum, 
+		                   calcPercent(saleSum, 5, "plus"), calcPercent(saleSum, 10, "plus"), calcPercent(saleSum, 15, "plus"), calcPercent(saleSum, 20, "plus")]
+		        },
+		        {
+		            label: "incomeSum",
+		            fillColor: "rgba(163,126,100,0.75)",
+		            strokeColor: "rgba(163,126,100,0.8)",
+		            highlightFill: "rgba(163,126,100,0.75)",
+		            highlightStroke: "rgba(163,126,100,1)",
+		            data: [calcPercent(income, 20, "minus"), calcPercent(income, 15, "minus"), calcPercent(income, 10, "minus"), calcPercent(income, 5, "minus"), 
+		                   income, 
+		                   calcPercent(income, 5, "plus"), calcPercent(income, 10, "plus"), calcPercent(income, 15, "plus") , calcPercent(income, 20, "plus")]
+		        }
+		    ]
+		};
+
+		// Get the context of the canvas element we want to select
+		var ctx = document.getElementById("myChart").getContext("2d");
+		var option = { scaleShowGridLines : false, 
+				       scaleOverride : true,
+		        	   scaleSteps : 5,
+		               scaleStepWidth : 5000000,
+		               scaleStartValue : 0, 
+		               showTooltips: false,
+		               onAnimationComplete: function () {
+
+		                   var ctx = this.chart.ctx;
+		                   ctx.font = this.scale.font;
+		                   ctx.fillStyle = this.scale.textColor
+		                   ctx.textAlign = "left";
+		                   ctx.textBaseline = "bottom";
+
+		                   this.datasets.forEach(function (dataset) {
+		                       dataset.bars.forEach(function (bar) {
+		                    	   ctx.fillText(Math.round( bar.value /1000000) + " M", bar.x+5, bar.y+5);
+		                       });
+		                   })
+		               }
+		             }	
+		var myBarChart = new Chart(ctx).HorizontalBar(data,  option);
+}
+
+function capitalStructure($scope, investmentAmount, purchaseCost, closingCost, softCost, investmentME, financing) {
+	if(investmentAmount != "0") {
+		$scope.purchaseCostTotalPercent = Math.round(purchaseCost / investmentAmount * 100);
+		$scope.closingCostTotalPercent = Math.round(closingCost / investmentAmount * 100);
+		$scope.softCostTotalPercent = Math.round(softCost / investmentAmount * 100);
+		$scope.investmentMETotalPercent = Math.round(investmentME / investmentAmount * 100);
+		$scope.financingTotalPercent = Math.round(financing / investmentAmount * 100);
+		$scope.totalPercent = Math.round($scope.purchaseCostTotalPercent + $scope.closingCostTotalPercent + $scope.softCostTotalPercent + $scope.investmentMETotalPercent + $scope.financingTotalPercent);
+		
+		$scope.purchaseCostAmount =  $scope.purchaseCostTotalPercent * investmentAmount / 100;
+		$scope.closingCostAmount = $scope.closingCostTotalPercent * investmentAmount / 100;
+		$scope.softCostAmount = $scope.softCostTotalPercent * investmentAmount / 100;
+		$scope.investmentMEAmount = $scope.investmentMETotalPercent * investmentAmount / 100;
+		$scope.financingAmount = $scope.financingTotalPercent * investmentAmount / 100;
+		$scope.totalAmount = $scope.purchaseCostAmount + $scope.closingCostAmount + $scope.softCostAmount + $scope.investmentMEAmount + $scope.financingAmount;
+	}
+}
+
+function darwGoogleMap(address) {
+	var geocoder;
+	var map;
+	var address = address ;
+    
+	geocoder = new google.maps.Geocoder();
+	var latlng = new google.maps.LatLng(-34.397, 150.644);
+        
+    var mapOptions = {
+		zoom: 8,
+	    center: latlng,
+	    mapTypeControl: true,
+	    mapTypeControlOptions: {style: google.maps.MapTypeControlStyle.DROPDOWN_MENU},
+	    navigationControl: true,
+	    mapTypeId: google.maps.MapTypeId.ROADMAP
+    };
+    
+    var map = new google.maps.Map(document.getElementById("map"), mapOptions);
+        
+    if (geocoder) {
+        geocoder.geocode( { 'address': address}, function(results, status) {
+	        if (status == google.maps.GeocoderStatus.OK) {
+		        if (status != google.maps.GeocoderStatus.ZERO_RESULTS) {		        	
+		        	map.setCenter(results[0].geometry.location);		
+		        	
+		        	var infowindow = new google.maps.InfoWindow(
+		              { content: '<b>'+address+'</b>',
+		                size: new google.maps.Size(150,50)
+		              });
+		
+		        	var marker = new google.maps.Marker(
+		        	  { position: results[0].geometry.location,
+		        		map: map, 
+		                title:address
+		              }); 
+		          
+		        	google.maps.event.addListener(marker, 'click', function() {
+		        		infowindow.open(map,marker);
+		        	});
+		
+		        } else {
+		          alert("No results found");
+		        }
+	        } else {
+	          alert("Geocode was not successful for the following reason: " + status);
+	        }
+	    });
+    }
 }
 
 //get main bar values
@@ -823,7 +1089,7 @@ function getMainBarValues($scope, $http) {
 
 //get properties for 'your properties' section
 function getPropertiesForYourPropertiesSection($scope, $rootScope, $http) {	
-	if(loginUserType == "client") {    	
+	if(localStorage.getItem("loginUserType") == "client") {    	
     	url = 'http://ec2-52-32-92-71.us-west-2.compute.amazonaws.com/index.php/api/PropertyImage';
     	id = localStorage.getItem('id');
     	return $http({
@@ -835,18 +1101,8 @@ function getPropertiesForYourPropertiesSection($scope, $rootScope, $http) {
 
     		$scope.propertyImage = [];
     		$scope.propertyImage = resp.data;
-
-    		console.log(resp.data[0]);
     		
     		$rootScope.propertyCnt = resp.data.length;
-
-    		if ($rootScope.propertyCnt == 1) {
-
-
-    			$rootScope.TheBranchName = resp.data['BranchName'];
-
-
-    		}
     		
     		addClass($scope.propertyImage);
     		
@@ -858,7 +1114,7 @@ function getPropertiesForYourPropertiesSection($scope, $rootScope, $http) {
 
 //get properties for 'special deals section'
 function getPropertiesForSpecialDealsSection($scope, $http) {
-	if(loginUserType == "client") {    	
+	if(localStorage.getItem("loginUserType") == "client") {    	
 		url = 'http://ec2-52-32-92-71.us-west-2.compute.amazonaws.com/index.php/api/PropertyImage/getSpecialDealsPropertyImage';
 		id = localStorage.getItem('id');
 		return $http({
@@ -888,7 +1144,8 @@ function getOverviewPageData($scope, $rootScope, $http, $q) {
 }
 
 function getOverviewDetailsPageData(propertyId, $scope, $http, $q) {
-	return $q.all([getPropertyImage(propertyId, $scope, $http),	                
+	return $q.all([getPropertyImage(propertyId, $scope, $http),
+	               getPropertyChart(propertyId, $scope, $http),
 	               getPurchaseDetails(propertyId,$scope, $http), 
 	               getClosingDetails(propertyId, $scope, $http),
 	               getRenovationDetails(propertyId, $scope, $http), 
@@ -907,4 +1164,13 @@ function numberWithCommas(x) {
 function dateFormat(date) {
 	var formattedDate = new Date(date);
 	return (formattedDate.getMonth() + 1) + '/' + formattedDate.getDate() + '/' +  formattedDate.getFullYear();
+}
+
+function calcPercent(sum, percent, operator) {
+	var val;
+	if(operator == 'minus') {
+		return val = sum * ((100 - percent) / 100);
+	} else {
+		return val = sum * ((100 + percent) / 100);
+	}
 }
